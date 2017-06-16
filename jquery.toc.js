@@ -30,22 +30,30 @@
                 stack = [root], // The upside-down stack keeps track of list elements
                 listTag = this.tagName,
                 currentLevel = 0,
-                headingSelectors;
+                headingSelectors,
+                ignoreClasses;
 
             // Defaults: plugin parameters override data attributes, which override our defaults
-            thisOptions = $.extend(
-                {content: "body", headings: "h1,h2,h3"},
-                {content: data.toc || undefined, headings: data.tocHeadings || undefined},
-                options
-            );
+            thisOptions = $.extend({
+              content: "body",
+              headings: "h1,h2,h3",
+              ignoreClass: "toc-ignore"
+            },
+            {
+              content: data.toc || undefined,
+              headings: data.tocHeadings || undefined,
+              ignoreClass: data.tocIgnoreClass || undefined
+            }, options);
+
             headingSelectors = thisOptions.headings.split(",");
+            ignoreClasses = thisOptions.ignoreClass.split(",");
 
             // Set up some automatic IDs if we do not already have them
             $(thisOptions.content).find(thisOptions.headings).attr("id", function (index, attr) {
                 // In HTML5, the id attribute must be at least one character long and must not
                 // contain any space characters.
                 //
-				// We just use the HTML5 spec now because all browsers work fine with it.
+				        // We just use the HTML5 spec now because all browsers work fine with it.
                 // https://mathiasbynens.be/notes/html5-id-class
                 var generateUniqueId = function (text) {
                     // Generate a valid ID. Spaces are replaced with underscores. We also check if
@@ -67,6 +75,19 @@
 
                 return attr || generateUniqueId($(this).text());
             }).each(function () {
+
+                // Skip over any headings with an ignore class.
+                var classString = $(this).attr("class") + ' ' + $(this).parent().attr("class");
+                var elementClasses = classString.split(" ");
+                elementClasses = $.grep(elementClasses, function(value) {
+                  return value != "undefined";
+                });
+                for (var i = 0; i < elementClasses.length; i++) {
+                  if ($.inArray(elementClasses[i], ignoreClasses) > -1) {
+                    return;
+                  }
+                }
+
                 // What level is the current heading?
                 var elem = $(this), level = $.map(headingSelectors, function (selector, index) {
                     return elem.is(selector) ? index : undefined;
